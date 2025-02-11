@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.claude
+*.so
+.env
+CLAUDE.md
+config.py
+*.db
+.DS_Store
+venv/
+*.log
