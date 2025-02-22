@@ -120,6 +120,45 @@ class HabitDatabase:
             'current_streak': current_streak
         }
 
+    def get_all_user_stats(self, user_id: int) -> dict:
+        """Get overall statistics for a user."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Get total habits
+        cursor.execute('''
+            SELECT COUNT(*) FROM habits
+            WHERE user_id = ? AND is_active = 1
+        ''', (user_id,))
+        total_habits = cursor.fetchone()[0]
+
+        # Get total completions this week
+        cursor.execute('''
+            SELECT COUNT(*) FROM habit_logs hl
+            JOIN habits h ON hl.habit_id = h.id
+            WHERE hl.user_id = ? AND hl.completion_date >= date('now', '-7 days')
+        ''', (user_id,))
+        weekly_completions = cursor.fetchone()[0]
+
+        # Get completion rate for active habits today
+        cursor.execute('''
+            SELECT COUNT(DISTINCT hl.habit_id) FROM habit_logs hl
+            JOIN habits h ON hl.habit_id = h.id
+            WHERE hl.user_id = ? AND hl.completion_date = date('now')
+            AND h.is_active = 1
+        ''', (user_id,))
+        today_completions = cursor.fetchone()[0]
+
+        completion_rate = (today_completions / total_habits * 100) if total_habits > 0 else 0
+
+        conn.close()
+        return {
+            'total_habits': total_habits,
+            'weekly_completions': weekly_completions,
+            'today_completions': today_completions,
+            'completion_rate': completion_rate
+        }
+
     def _calculate_streak(self, dates: List[str]) -> int:
         """Calculate current streak from a list of completion dates."""
         if not dates:

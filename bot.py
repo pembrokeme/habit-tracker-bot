@@ -151,6 +151,45 @@ async def check_habit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "You've already marked this habit as completed for today! ✅"
         )
 
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show user statistics."""
+    user_id = update.effective_user.id
+
+    try:
+        stats = db.get_all_user_stats(user_id)
+
+        if stats['total_habits'] == 0:
+            await update.message.reply_text(
+                "You don't have any habits yet! Add one with /addhabit <habit name>"
+            )
+            return
+
+        message = f"📊 *Your Habit Statistics*\n\n"
+        message += f"🎯 Total active habits: {stats['total_habits']}\n"
+        message += f"✅ Completed today: {stats['today_completions']}/{stats['total_habits']}\n"
+        message += f"📈 Today's completion rate: {stats['completion_rate']:.1f}%\n"
+        message += f"🔥 This week's completions: {stats['weekly_completions']}\n\n"
+
+        # Show individual habit stats
+        habits = db.get_user_habits(user_id)
+        if habits:
+            message += "*Individual Habit Progress:*\n"
+            for habit in habits[:5]:  # Show top 5 habits
+                habit_id, name, _, _ = habit
+                habit_stats = db.get_habit_stats(user_id, habit_id)
+                message += f"• {name}: {habit_stats['current_streak']} day streak\n"
+
+            if len(habits) > 5:
+                message += f"_... and {len(habits) - 5} more habits_\n"
+
+        message += f"\nUse /habits to see all your habits! 🚀"
+
+        await update.message.reply_text(message, parse_mode='Markdown')
+
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        await update.message.reply_text("Sorry, there was an error getting your statistics.")
+
 def main() -> None:
     """Start the bot."""
     # Create the Application
@@ -162,6 +201,7 @@ def main() -> None:
     application.add_handler(CommandHandler("addhabit", add_habit))
     application.add_handler(CommandHandler("habits", view_habits))
     application.add_handler(CommandHandler("check", check_habit))
+    application.add_handler(CommandHandler("stats", stats_command))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
