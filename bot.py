@@ -5,6 +5,13 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from database import HabitDatabase
 
+try:
+    from config import BOT_TOKEN, DATABASE_PATH
+except ImportError:
+    print("Error: config.py not found!")
+    print("Please copy config_example.py to config.py and add your bot token.")
+    exit(1)
+
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -13,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize database
-db = HabitDatabase()
+db = HabitDatabase(DATABASE_PATH)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
@@ -193,7 +200,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 def main() -> None:
     """Start the bot."""
     # Create the Application
-    application = Application.builder().token("YOUR_BOT_TOKEN_HERE").build()
+    application = Application.builder().token(BOT_TOKEN).build()
 
     # Register handlers
     application.add_handler(CommandHandler("start", start))
